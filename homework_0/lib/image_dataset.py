@@ -1,7 +1,8 @@
 import os
-import tensorflow as tf
-from typing import Tuple, Optional, List
 import pathlib
+from typing import Tuple, Optional, List
+
+import tensorflow as tf
 
 
 class ImageDatasetLoader:
@@ -60,7 +61,7 @@ class ImageDatasetLoader:
         return tf.data.Dataset.zip((img_ds, label_ds))
 
     @classmethod
-    def retrieve_directory_metadata(cls, directory: pathlib.Path):
+    def retrieve_directory_metadata(cls, directory: pathlib.Path) -> Tuple[List[str], List[int], List[str]]:
         os.chdir(directory)
         image_paths, labels, class_names = [], [], []
         for idx, paths in enumerate(os.walk(directory), start=-1):
@@ -74,7 +75,7 @@ class ImageDatasetLoader:
         return image_paths, labels, class_names
 
     @classmethod
-    def load_image(cls, path, image_size, num_channels=3):
+    def load_image(cls, path, image_size, num_channels=3) -> tf.image:
         img = tf.io.read_file(path)
         img = tf.image.decode_image(img, channels=num_channels, expand_animations=False)
         img = tf.image.resize(img, image_size, method="bilinear")

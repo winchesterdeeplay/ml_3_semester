@@ -1,7 +1,9 @@
-import tensorflow as tf
-from typing import Tuple, Union, Any, List, Callable
 import pathlib
+from typing import Tuple, Any, List, Callable
+
 import matplotlib.pyplot as plt
+import tensorflow as tf
+
 from homework_0.lib.image_dataset import ImageDatasetLoader
 
 

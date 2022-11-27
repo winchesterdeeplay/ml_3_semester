@@ -6,7 +6,7 @@ from numpy import array
 
 
 def image_dataset_from_directory(
-    dataset_path: pathlib.Path,
+    directory: pathlib.Path,
     batch_size: int = 32,
     image_size: Tuple[int, int] = (256, 256),
     shuffle: bool = True,
@@ -14,35 +14,63 @@ def image_dataset_from_directory(
     validation_split: Optional[float] = None,
     subset: Optional[str] = None,
 ) -> tf.data.Dataset:
-    image_paths, labels, class_names = retrieve_directory_metadata(dataset_path)
+    image_paths, labels, class_names = retrieve_directory_metadata(directory)
     if shuffle:
         image_paths, labels, class_names = zip_shuffle_sequences([image_paths, labels, class_names], seed=seed)
 
-    full_dataset = build_dataset(image_paths=image_paths, image_size=image_size, labels=labels)
+    (image_paths_train, labels_train, class_names_train), (
+        image_paths_val,
+        labels_val,
+        class_names_val,
+    ) = zip_train_validation_split_sequences([image_paths, labels, class_names], validation_split=validation_split)
 
-    if subset == "both":
-        if validation_split > 1:
-            raise Exception("'validation split ratio' should be <= 1")
-        train_dataset_size = int(validation_split * len(image_paths))
+    if subset in ("both", "training", "validation"):
+        if validation_split is None:
+            raise Exception("'validation split' should be specified")
+        if validation_split >= 1:
+            raise Exception("'validation split' should be < 1")
 
-        train_dataset = full_dataset.take(train_dataset_size)
-        val_dataset = full_dataset.skip(train_dataset_size)
-
-        train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE).batch(batch_size)
-        val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE).batch(batch_size)
-
-        train_dataset.class_names = class_names[:train_dataset_size]
-        val_dataset.class_names = class_names[train_dataset_size:]
-
-        train_dataset.file_paths = image_paths[:train_dataset_size]
-        val_dataset.file_paths = image_paths[train_dataset_size:]
+    if subset == "training":
+        dataset = build_dataset(
+            image_paths=image_paths_train,
+            class_names=class_names_train,
+            labels=labels_train,
+            image_size=image_size,
+            batch_size=batch_size,
+        )
+    elif subset == "validation":
+        dataset = build_dataset(
+            image_paths=image_paths_val,
+            class_names=class_names_val,
+            labels=labels_val,
+            image_size=image_size,
+            batch_size=batch_size,
+        )
+    elif subset == "both":
+        train_dataset = build_dataset(
+            image_paths=image_paths_train,
+            class_names=class_names_train,
+            labels=labels_train,
+            image_size=image_size,
+            batch_size=batch_size,
+        )
+        val_dataset = build_dataset(
+            image_paths=image_paths_val,
+            class_names=class_names_val,
+            labels=labels_val,
+            image_size=image_size,
+            batch_size=batch_size,
+        )
 
         dataset = [train_dataset, val_dataset]
     else:
-        dataset = full_dataset.prefetch(tf.data.AUTOTUNE)
-        dataset = dataset.batch(batch_size)
-        dataset.class_names = class_names
-        dataset.file_paths = image_paths
+        dataset = build_dataset(
+            image_paths=image_paths,
+            class_names=class_names,
+            image_size=image_size,
+            labels=labels,
+            batch_size=batch_size,
+        )
     return dataset
 
 
@@ -54,11 +82,35 @@ def zip_shuffle_sequences(sequences: List[Sequence], seed: Optional[int] = None)
     return [array(seq)[shuffled_indexes].tolist() for seq in sequences]
 
 
-def build_dataset(image_paths: List[str], image_size: Tuple[int, int], labels: List[int]) -> tf.data.Dataset:
+def zip_train_validation_split_sequences(
+        sequences: List[Sequence], validation_split: Optional[float] = None
+) -> Tuple[List[Sequence], List[Sequence]]:
+    if validation_split is None:
+        return sequences, [[] for _ in range(len(sequences))]
+    if not sequences:
+        raise Exception("sequences shouldn't be empty")
+
+    train_dataset_size = int((1-validation_split) * len(sequences[0]))
+
+    train_sequences, validation_sequences = [], []
+
+    for seq in sequences:
+        train_sequences.append(seq[:train_dataset_size])
+        validation_sequences.append(seq[-train_dataset_size:])
+    return train_sequences, validation_sequences
+
+
+def build_dataset(
+    image_paths: List[str], class_names: List[str], labels: List[int], image_size: Tuple[int, int], batch_size: int
+) -> tf.data.Dataset:
     path_ds = tf.data.Dataset.from_tensor_slices(image_paths)
     label_ds = tf.data.Dataset.from_tensor_slices(labels)
     img_ds = path_ds.map(lambda x: load_image(x, image_size), num_parallel_calls=tf.data.AUTOTUNE)
-    return tf.data.Dataset.zip((img_ds, label_ds))
+    dataset = tf.data.Dataset.zip((img_ds, label_ds))
+    dataset = dataset.prefetch(tf.data.AUTOTUNE).batch(batch_size)
+    dataset.class_names = class_names
+    dataset.file_paths = image_paths
+    return dataset
 
 
 def retrieve_directory_metadata(directory: pathlib.Path) -> Tuple[List[str], List[int], List[str]]:

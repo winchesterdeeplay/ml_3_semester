@@ -84,7 +84,7 @@ def retrieve_train_val_dataset(
 ) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
     if mode != "both":
         train_ds = image_dataset_from_directory_method(
-            dataset_path=dataset_path,
+            directory=dataset_path,
             validation_split=validation_split_ratio,
             batch_size=batch_size,
             subset="training",
@@ -93,7 +93,7 @@ def retrieve_train_val_dataset(
         )
 
         val_ds = image_dataset_from_directory_method(
-            dataset_path=dataset_path,
+            directory=dataset_path,
             validation_split=validation_split_ratio,
             batch_size=batch_size,
             subset="validation",
@@ -103,7 +103,7 @@ def retrieve_train_val_dataset(
         return train_ds, val_ds
     else:
         return image_dataset_from_directory_method(
-            dataset_path=dataset_path,
+            directory=dataset_path,
             validation_split=validation_split_ratio,
             batch_size=batch_size,
             subset="both",

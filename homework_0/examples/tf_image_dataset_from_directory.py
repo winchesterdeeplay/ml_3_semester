@@ -19,7 +19,7 @@ RANDOM_SEED = 42
 VALIDATION_SPLIT_RATIO = 0.2
 
 TRAIN_EPOCHS = 10
-SUBSET_MODE = "both"  # or any else
+SUBSET_MODE = "both"  # or any
 
 
 if __name__ == "__main__":

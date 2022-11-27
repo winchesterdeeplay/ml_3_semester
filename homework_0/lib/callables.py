@@ -4,7 +4,7 @@ from typing import Tuple, Any, List, Callable
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-from homework_0.lib.image_dataset import ImageDatasetLoader
+from homework_0.lib.image_dataset_lib import image_dataset_from_directory
 
 
 def load_dataset(url: str, filename: str) -> pathlib.Path:
@@ -70,7 +70,7 @@ def init_simple_model(class_names: List[str], img_height: int, img_width: int) -
 def choose_image_dataset_from_directory_method(tf_implementation: bool) -> Callable:
     if tf_implementation:
         return tf.keras.utils.image_dataset_from_directory
-    return ImageDatasetLoader.image_dataset_from_directory
+    return image_dataset_from_directory
 
 
 def retrieve_train_val_dataset(

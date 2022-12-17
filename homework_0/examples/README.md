@@ -4,3 +4,6 @@
 Скрипт: `tf_image_dataset_from_directory.py`
 
 `IMAGE_DATASET_FROM_DIRECTORY_TF_IMPLEMENTATION = False` - собственная имплементацию метода. `True` - tensorflow
+
+### keras.utils.Sequence
+Скрипт: `tf_custom_sequence.py`
